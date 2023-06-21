@@ -64,6 +64,44 @@ void calibrate(int delayTime)
   delay(500);
 }
 
+void measure(int delayTime)
+{
+  unsigned long endTime = millis() + delayTime;
+
+  while (millis() < endTime)
+  {
+    timeStamp = micros();
+
+    int Value = analogRead(SensorInputPin);
+    int DataAfterFilter = myFilter.update(Value);
+    int envelope = sq(DataAfterFilter);
+    envelope = (envelope > Threshold) ? envelope : 0;
+
+    Serial.println(String(envelope));
+
+    timeStamp = micros() - timeStamp;
+    if (TIMING_DEBUG)
+    {
+      if (envelope > Threshold)
+      {
+        Serial.print("Read Data: ");
+        Serial.println(Value);
+        Serial.print("Filtered Data: ");
+        Serial.println(DataAfterFilter);
+        Serial.print("Envelope: ");
+        Serial.println(sq(DataAfterFilter));
+        Serial.print("Squared Data: ");
+        Serial.println(envelope);
+        Serial.print("Filters cost time: ");
+        Serial.println(timeStamp);
+        Serial.print("Threshold: ");
+        Serial.println(Threshold);
+      }
+    }
+    delayMicroseconds(500);
+  }
+}
+
 void setup()
 {
   Serial.begin(115200);
@@ -104,36 +142,18 @@ void loop()
         calibrate(duration);
         return;
       }
+
+      if (command == "medir")
+      {
+        String durationStr = inputLine.substring(commaIndex + 1);
+        durationStr.trim();
+
+        int duration = durationStr.toInt();
+        duration *= 1000;
+
+        measure(duration);
+        return;
+      }
     }
   }
-
-  timeStamp = micros();
-
-  int Value = analogRead(SensorInputPin);
-  int DataAfterFilter = myFilter.update(Value);
-  int envelope = sq(DataAfterFilter);
-  envelope = (envelope > Threshold) ? envelope : 0;
-
-  Serial.println(envelope);
-
-  timeStamp = micros() - timeStamp;
-  if (TIMING_DEBUG)
-  {
-    if (envelope > Threshold)
-    {
-      Serial.print("Read Data: ");
-      Serial.println(Value);
-      Serial.print("Filtered Data: ");
-      Serial.println(DataAfterFilter);
-      Serial.print("Envelope: ");
-      Serial.println(sq(DataAfterFilter));
-      Serial.print("Squared Data: ");
-      Serial.println(envelope);
-      Serial.print("Filters cost time: ");
-      Serial.println(timeStamp);
-      Serial.print("Threshold: ");
-      Serial.println(Threshold);
-    }
-  }
-  delayMicroseconds(500);
 }
